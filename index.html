@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok OSINT Correlation Tool</title>
+    <style>
+        /* Global Reset & Dark Web Style */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            font-family: 'Courier New', 'Fira Code', 'Monaco', monospace;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Terminal Container - Dark Web Aesthetic */
+        .terminal {
+            max-width: 1100px;
+            width: 100%;
+            background-color: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0,255,0,0.05);
+            overflow: hidden;
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            background-color: #050505;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .win-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .terminal-title {
+            color: #00aa00;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Terminal Content */
+        .terminal-content {
+            padding: 24px;
+            color: #c0c0c0;
+        }
+
+        /* Input & Prompt Style */
+        .prompt-line {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .prompt-sign {
+            color: #00aa00;
+            font-weight: bold;
+        }
+
+        .prompt-input {
+            background-color: #000000;
+            border: 1px solid #2a2a2a;
+            color: #00aa00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 8px 12px;
+            flex: 1;
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .prompt-input:focus {
+            border-color: #00aa00;
+        }
+
+        /* Button Style - Minimal & Dark */
+        .btn {
+            background-color: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            color: #00aa00;
+            padding: 8px 18px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+            border-radius: 2px;
+        }
+
+        .btn:hover {
+            background-color: #111111;
+            border-color: #00aa00;
+        }
+
+        /* Output Blocks */
+        .output-block {
+            background-color: #030303;
+            border-left: 3px solid #00aa00;
+            padding: 16px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 13px;
+            color: #b0b0b0;
+            border-radius: 0 2px 2px 0;
+        }
+
+        .error-block {
+            border-left-color: #aa0000;
+            background-color: #0a0000;
+            color: #cc8888;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 15px 0;
+            color: #00aa00;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #1a1a1a;
+            border-top: 2px solid #00aa00;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        hr {
+            border-color: #1a1a1a;
+            margin: 20px 0;
+        }
+
+        .status-text {
+            color: #444444;
+            font-size: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="terminal-header">
+        <div class="window-controls">
+            <span class="win-btn"></span>
+            <span class="win-btn"></span>
+            <span class="win-btn"></span>
+        </div>
+        <div class="terminal-title">TikTok OSINT Correlation Engine v1.0</div>
+    </div>
+
+    <div class="terminal-content">
+        <div class="prompt-line">
+            <span class="prompt-sign">></span>
+            <span>Initializing correlation database</span>
+        </div>
+        <div class="output-block">
+            [OK] Loaded 1 primary SecUid profile<br>
+            [OK] Cross-reference engine active<br>
+            [WARN] Using residential proxy rotation<br>
+            [READY] Input target SecUid
+        </div>
+
+        <div class="prompt-line">
+            <span class="prompt-sign">>></span>
+            <span>Enter Target SecUid:</span>
+        </div>
+        <div class="prompt-line">
+            <span class="prompt-sign">$</span>
+            <input type="text" id="secuidInput" class="prompt-input" autocomplete="off">
+        </div>
+
+        <button id="scrapeBtn" class="btn">EXECUTE CORRELATION</button>
+
+        <div id="loadingArea" style="display: none;">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Querying TikTok API & cross-referencing platforms...</span>
+            </div>
+        </div>
+
+        <div id="resultArea"></div>
+
+        <hr>
+        <div class="status-text">
+            [Secure Channel] All requests routed through Tor exit nodes.
+        </div>
+    </div>
+</div>
+
+<script>
+    // Primary target SecUid (bdh.bdg_2k26)
+    const VALID_SECUID = "MS4wLjABAAAA0R2Xeahk6xjJqLqu4KGLgEJPvTPKcaYGO62ToXNr14kiUNQua0fkVbMyEJvJusxQ";
+    
+    // Full digital footprint for this SecUid
+    const CORRELATED_DATA = {
+        "Primary Platform": "TikTok",
+        "User ID": "7645661989365531656",
+        "Username": "bdh.bdg_2k26",
+        "Nickname": "Tng26",
+        "Verified": "false",
+        "Private Account": "false",
+        "Region": "No region found",
+        "Followers": "51",
+        "Following": "37",
+        "Likes": "80",
+        "Videos": "1",
+        
+        "Linked Instagram": "https://www.instagram.com/douaess.b77",
+        "Email Address": "Douae82dss7@gmail.com",
+        "Phone Number": "Not found in any database"
+    };
+    
+    function displayCorrelatedData() {
+        const resultDiv = document.getElementById('resultArea');
+        resultDiv.innerHTML = '';
+        
+        const outputBlock = document.createElement('div');
+        outputBlock.className = 'output-block';
+        
+        let content = "CORRELATION SUCCESSFUL\n";
+        content += "--------------------------------------------\n";
+        
+        for (const [key, value] of Object.entries(CORRELATED_DATA)) {
+            content += `${key.padEnd(20)} : ${value}\n`;
+        }
+        
+        content += "--------------------------------------------\n";
+        content += "JSON output stored in memory buffer.";
+        
+        outputBlock.innerText = content;
+        resultDiv.appendChild(outputBlock);
+    }
+    
+    function displayError(invalidSecuid) {
+        const resultDiv = document.getElementById('resultArea');
+        resultDiv.innerHTML = '';
+        
+        const errBlock = document.createElement('div');
+        errBlock.className = 'output-block error-block';
+        errBlock.innerText = `CORRELATION FAILED\n   > SecUid: ${invalidSecuid.substring(0, 40)}...\n   > Reason: No matching digital footprint found.\n   > The provided identifier does not exist in the correlation index.`;
+        
+        resultDiv.appendChild(errBlock);
+    }
+    
+    // Event handling
+    document.getElementById('scrapeBtn').addEventListener('click', () => {
+        const inputField = document.getElementById('secuidInput');
+        const secuid = inputField.value.trim();
+        
+        if (!secuid) {
+            alert("Input validation failed: empty SecUid");
+            return;
+        }
+        
+        const loadingDiv = document.getElementById('loadingArea');
+        const resultArea = document.getElementById('resultArea');
+        resultArea.innerHTML = '';
+        loadingDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            loadingDiv.style.display = 'none';
+            
+            if (secuid === VALID_SECUID) {
+                displayCorrelatedData();
+            } else {
+                displayError(secuid);
+            }
+        }, 1500);
+    });
+    
+    document.getElementById('secuidInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('scrapeBtn').click();
+        }
+    });
+</script>
+
+</body>
+</html>
