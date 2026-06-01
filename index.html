@@ -73,7 +73,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
         }
 
@@ -109,6 +109,7 @@
             cursor: pointer;
             transition: 0.2s;
             margin-top: 10px;
+            margin-bottom: 20px;
             border-radius: 2px;
         }
 
@@ -170,6 +171,12 @@
             font-size: 10px;
             margin-top: 15px;
         }
+        
+        .timer-text {
+            color: #888888;
+            font-size: 11px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -181,24 +188,43 @@
             <span class="win-btn"></span>
             <span class="win-btn"></span>
         </div>
-        <div class="terminal-title">TikTok OSINT Correlation Engine v1.0</div>
+        <div class="terminal-title">TikTok OSINT Correlation Engine v2.0 - Multi-Factor Auth</div>
     </div>
 
     <div class="terminal-content">
         <div class="prompt-line">
             <span class="prompt-sign">></span>
-            <span>Initializing correlation database</span>
+            <span>Initializing multi-layer correlation database</span>
         </div>
         <div class="output-block">
-            [OK] Loaded 1 primary SecUid profile<br>
+            [OK] Loaded 1 primary identity profile<br>
             [OK] Cross-reference engine active<br>
             [WARN] Using residential proxy rotation<br>
-            [READY] Input target SecUid
+            [AUTH] Multi-factor validation required<br>
+            [READY] Input three identification factors
         </div>
 
         <div class="prompt-line">
             <span class="prompt-sign">>></span>
-            <span>Enter Target SecUid:</span>
+            <span>Enter Username:</span>
+        </div>
+        <div class="prompt-line">
+            <span class="prompt-sign">$</span>
+            <input type="text" id="usernameInput" class="prompt-input" autocomplete="off">
+        </div>
+
+        <div class="prompt-line">
+            <span class="prompt-sign">>></span>
+            <span>Enter User ID:</span>
+        </div>
+        <div class="prompt-line">
+            <span class="prompt-sign">$</span>
+            <input type="text" id="userIdInput" class="prompt-input" autocomplete="off">
+        </div>
+
+        <div class="prompt-line">
+            <span class="prompt-sign">>></span>
+            <span>Enter SecUid:</span>
         </div>
         <div class="prompt-line">
             <span class="prompt-sign">$</span>
@@ -212,6 +238,7 @@
                 <div class="spinner"></div>
                 <span>Querying TikTok API & cross-referencing platforms...</span>
             </div>
+            <div class="timer-text" id="timerText">Estimated time: 15 seconds</div>
         </div>
 
         <div id="resultArea"></div>
@@ -224,7 +251,9 @@
 </div>
 
 <script>
-    // Primary target SecUid (bdh.bdg_2k26)
+    // VALID CREDENTIALS
+    const VALID_USERNAME = "bdh.bdg_2k26";
+    const VALID_USER_ID = "7645661989365531656";
     const VALID_SECUID = "MS4wLjABAAAA0R2Xeahk6xjJqLqu4KGLgEJPvTPKcaYGO62ToXNr14kiUNQua0fkVbMyEJvJusxQ";
     
     // Full digital footprint for this SecUid
@@ -245,6 +274,8 @@
         "Email Address": "Douae82dss7@gmail.com",
         "Phone Number": "Not found in any database"
     };
+    
+    let countdownInterval = null;
     
     function displayCorrelatedData() {
         const resultDiv = document.getElementById('resultArea');
@@ -267,47 +298,90 @@
         resultDiv.appendChild(outputBlock);
     }
     
-    function displayError(invalidSecuid) {
+    function displayError(reason) {
         const resultDiv = document.getElementById('resultArea');
         resultDiv.innerHTML = '';
         
         const errBlock = document.createElement('div');
         errBlock.className = 'output-block error-block';
-        errBlock.innerText = `CORRELATION FAILED\n   > SecUid: ${invalidSecuid.substring(0, 40)}...\n   > Reason: No matching digital footprint found.\n   > The provided identifier does not exist in the correlation index.`;
+        errBlock.innerText = `CORRELATION FAILED\n   > Reason: ${reason}\n   > The provided identifiers do not match any known digital footprint in the correlation index.`;
         
         resultDiv.appendChild(errBlock);
     }
     
+    function startCountdown(seconds, callback) {
+        const timerText = document.getElementById('timerText');
+        let remaining = seconds;
+        
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        countdownInterval = setInterval(() => {
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                callback();
+            } else {
+                timerText.textContent = `Estimated time: ${remaining} seconds`;
+                remaining--;
+            }
+        }, 1000);
+    }
+    
     // Event handling
     document.getElementById('scrapeBtn').addEventListener('click', () => {
-        const inputField = document.getElementById('secuidInput');
-        const secuid = inputField.value.trim();
+        const username = document.getElementById('usernameInput').value.trim();
+        const userId = document.getElementById('userIdInput').value.trim();
+        const secuid = document.getElementById('secuidInput').value.trim();
         
-        if (!secuid) {
-            alert("Input validation failed: empty SecUid");
+        // Clear previous results
+        const resultArea = document.getElementById('resultArea');
+        resultArea.innerHTML = '';
+        
+        // Validation: Check if any field is empty
+        if (!username || !userId || !secuid) {
+            displayError("All three identification factors are required.");
             return;
         }
         
+        // Validation: Check credentials
+        if (username !== VALID_USERNAME) {
+            displayError("Username not found in correlation database.");
+            return;
+        }
+        
+        if (userId !== VALID_USER_ID) {
+            displayError("User ID does not match the provided username.");
+            return;
+        }
+        
+        if (secuid !== VALID_SECUID) {
+            displayError("SecUid validation failed. Access denied.");
+            return;
+        }
+        
+        // All credentials are correct - proceed with delay
         const loadingDiv = document.getElementById('loadingArea');
-        const resultArea = document.getElementById('resultArea');
-        resultArea.innerHTML = '';
+        const resultDiv = document.getElementById('resultArea');
+        resultDiv.innerHTML = '';
         loadingDiv.style.display = 'block';
         
-        setTimeout(() => {
+        // Start 15 second countdown
+        startCountdown(15, () => {
             loadingDiv.style.display = 'none';
-            
-            if (secuid === VALID_SECUID) {
-                displayCorrelatedData();
-            } else {
-                displayError(secuid);
-            }
-        }, 1500);
+            displayCorrelatedData();
+        });
     });
     
-    document.getElementById('secuidInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('scrapeBtn').click();
-        }
+    // Allow Enter key on inputs
+    const inputs = ['usernameInput', 'userIdInput', 'secuidInput'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('scrapeBtn').click();
+            }
+        });
     });
 </script>
 
